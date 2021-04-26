@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:java="http://www.mulesoft.org/schema/mule/java"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/java http://www.mulesoft.org/schema/mule/java/current/mule-java.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="e96c767e-a7d0-4bca-b8a7-f5381f09f2fb" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="7d85c803-0234-4e7a-84cb-7ca5f253edc1" basePath="/rest" >
+		<http:request-connection host="localhost" port="7070" />
+	</http:request-config>
+	<file:config name="File_Config" doc:name="File Config" doc:id="e57d5fad-d2c0-4658-bad8-32e3ae8ef5d0" >
+		<file:connection workingDir="E:\ksh5\EIP\files" />
+	</file:config>
+	<flow name="ksh-mule-indepthFlow" doc:id="0affa518-df97-497f-a5fa-aeab6b66da0a" >
+		<http:listener doc:name="Listener" doc:id="87b5249c-55ea-4a42-a0c0-6278063a0a61" config-ref="HTTP_Listener_config" path="/java-static" outputMimeType="application/json"/>
+		<logger level="INFO" doc:name="Logger" doc:id="c7b2b76f-4cf9-434f-a9ea-f4de5ffa2dd2" message="Hello World"/>
+		<java:invoke-static doc:name="Invoke static" doc:id="34cccf32-4799-46f1-a6c2-b44c1a6a51a8" class="ksh.StockQuoteService" method="sayHello(java.lang.String,java.lang.String)" outputMimeType="application/json">
+			<java:args ><![CDATA[#[%dw 2.0
+output application/java
+---
+{
+	name: attributes.queryParams.name as String,
+	city: attributes.queryParams.city as String
+}]]]></java:args>
+		</java:invoke-static>
+	</flow>
+	<flow name="ksh-mule-indepthFlow1" doc:id="65ecfde1-f01d-4585-93ef-3c5fda74dadf" >
+		<http:listener doc:name="Listener" doc:id="01418a75-94b1-4a6e-b188-68b22249a8f8" config-ref="HTTP_Listener_config" path="/java-invoke"/>
+		<logger level="INFO" doc:name="Logger" doc:id="d8b5ebf0-97f5-422b-b176-b41b386a113a" />
+		<java:new constructor="StockQuoteService()" doc:name="New" doc:id="cd6a5955-081c-41da-a032-cb1bc7be836e" class="ksh.StockQuoteService" target="sqs"/>
+		<java:invoke doc:name="Invoke" doc:id="23484cc1-5793-49da-885b-cf60983d1826" class="ksh.StockQuoteService" method="getStockPrice(java.lang.String)" instance="#[vars.sqs]" outputMimeType="application/json">
+			<java:args ><![CDATA[#[%dw 2.0
+output application/java
+---
+{
+	stockSymbol: attributes.queryParams.stock as String
+}]]]></java:args>
+		</java:invoke>
+		<logger level="INFO" doc:name="Logger" doc:id="75187a81-d121-4f05-b7f0-d5a6257a0c6c" message="#[payload]"/>
+	</flow>
+	<flow name="ksh-mule-indepthFlow2" doc:id="d600944e-395b-4439-99b8-198d274a5373" >
+		<http:listener doc:name="Listener" doc:id="13678771-2995-4007-b273-1e530050911d" config-ref="HTTP_Listener_config" path="/products"/>
+		<http:request method="GET" doc:name="Request" doc:id="fb3a1cf8-1921-4212-b92b-ea6fe45e6d54" config-ref="HTTP_Request_configuration" path="/products"/>
+	</flow>
+	<flow name="byProductName" doc:id="a446b84a-a796-43ca-b60a-ebf680ea467a" >
+		<http:listener doc:name="Listener" doc:id="3d60e183-b8d5-427d-9d2d-1e41e7a6550d" config-ref="HTTP_Listener_config" path="/productName">
+			<repeatable-in-memory-stream bufferUnit="BYTE" />
+		</http:listener>
+		<http:request method="GET" doc:name="Request" doc:id="4d842448-a31f-4ba6-b6ba-71b46f3aff16" config-ref="HTTP_Request_configuration" path="/products/{pname}" sendCorrelationId="NEVER">
+			<http:uri-params ><![CDATA[#[output application/java
+---
+{
+	pname : attributes.queryParams.productname
+}]]]></http:uri-params>
+		</http:request>
+	</flow>
+	<flow name="ksh-mule-indepthFlow3" doc:id="d91917a1-71cf-44bd-9451-695ae685c84e" >
+		<file:listener doc:name="On New or Updated File" doc:id="52b35e90-c81c-4191-9350-b204a4b3a5c1" config-ref="File_Config" directory="input" watermarkMode="CREATED_TIMESTAMP">
+			<scheduling-strategy >
+				<fixed-frequency frequency="5" timeUnit="SECONDS"/>
+			</scheduling-strategy>
+		</file:listener>
+		<ee:transform doc:name="Transform Message" doc:id="175ed4f6-b7ba-4463-a436-401af9e2a713" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<foreach doc:name="For Each" doc:id="7f5cc597-5070-4cd0-a248-85a02b41d9ba" >
+			<logger level="INFO" doc:name="Logger" doc:id="2d7aa344-27d5-49e3-bbed-9f487970887f" message="#[payload]"/>
+		</foreach>
+	</flow>
+	<flow name="writeFile" doc:id="4d64fc75-4669-4e9b-9a63-08fb90892664" >
+		<http:listener doc:name="Listener" doc:id="63eba9c7-802b-4d8f-ad58-b271616fbb82" config-ref="HTTP_Listener_config" path="/write"/>
+		<ee:transform doc:name="Transform Message" doc:id="c5614ac6-91b6-49a4-89d5-55d80a6cdd9c" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/csv headerLineNumber = 0 , header = true
+---
+[{
+	product_id: attributes.queryParams.pid as String,
+	product_name: attributes.queryParams.pname as String,
+	price: attributes.queryParams.price as String
+}]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<file:write doc:name="Write" doc:id="de33c93a-825d-46c0-a31c-3918dd3160e4" config-ref="File_Config" path="/move"/>
+	</flow>
+</mule>
