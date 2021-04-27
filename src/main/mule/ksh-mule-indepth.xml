@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:file="http://www.mulesoft.org/schema/mule/file"
-	xmlns:java="http://www.mulesoft.org/schema/mule/java"
-	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:java="http://www.mulesoft.org/schema/mule/java" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.mulesoft.org/schema/mule/java http://www.mulesoft.org/schema/mule/java/current/mule-java.xsd
 http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
-http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
 	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="e96c767e-a7d0-4bca-b8a7-f5381f09f2fb" >
 		<http:listener-connection host="0.0.0.0" port="8081" />
 	</http:listener-config>
@@ -16,6 +17,9 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
 	<file:config name="File_Config" doc:name="File Config" doc:id="e57d5fad-d2c0-4658-bad8-32e3ae8ef5d0" >
 		<file:connection workingDir="E:\ksh5\EIP\files" />
 	</file:config>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="31e44e20-20fd-49f2-bfd7-0fc2a4ea55a2" >
+		<db:my-sql-connection host="localhost" port="3306" user="root" password="root" database="muletrainingdb"/>
+	</db:config>
 	<flow name="ksh-mule-indepthFlow" doc:id="0affa518-df97-497f-a5fa-aeab6b66da0a" >
 		<http:listener doc:name="Listener" doc:id="87b5249c-55ea-4a42-a0c0-6278063a0a61" config-ref="HTTP_Listener_config" path="/java-static" outputMimeType="application/json"/>
 		<logger level="INFO" doc:name="Logger" doc:id="c7b2b76f-4cf9-434f-a9ea-f4de5ffa2dd2" message="Hello World"/>
@@ -92,5 +96,25 @@ output application/csv headerLineNumber = 0 , header = true
 			</ee:message>
 		</ee:transform>
 		<file:write doc:name="Write" doc:id="de33c93a-825d-46c0-a31c-3918dd3160e4" config-ref="File_Config" path="/move"/>
+	</flow>
+	<flow name="ksh-mule-indepthFlow4" doc:id="f6a118cc-d3ef-45bb-8e05-ccb20f3c4e05" >
+		<http:listener doc:name="Listener" doc:id="a00d2802-2ac7-40c3-9cb8-cad95242a4d7" config-ref="HTTP_Listener_config" path="/SqlProducts"/>
+		<db:select doc:name="Select" doc:id="85d6be03-6cf6-47ac-a43b-ba542c1101a5" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from product where brand_name= :bname]]></db:sql>
+			<db:input-parameters ><![CDATA[#[%dw 2.0
+output application/java
+---
+{
+	bname: attributes.queryParams.productName as String
+}]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="c7315560-51d9-480f-b8e5-49387ce578b7" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
 	</flow>
 </mule>
