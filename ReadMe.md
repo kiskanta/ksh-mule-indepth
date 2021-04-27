@@ -18,7 +18,7 @@ http://localhost:8081/java-invoke?stock=ibm
 Refernce: 
 [Mule4](https://docs.mulesoft.com/db-connector/1.9/) <br/>
 [dzone](https://dzone.com/articles/property-file-handling-in-mule4)
-<details>
+</details>
 
 <details><summary>Mule Configration properties</summary>
 
@@ -31,6 +31,14 @@ Reference:
 REefernce:
 
 [tutorialsatoz](https://www.tutorialsatoz.com/mulesoft-tutorial-scatter-gather/)
+</details>
+
+<details><summary>DWL</summary>
+<b>Data Wavier Language:</b>  
+
+Reference:
+[Mule4](https://docs.mulesoft.com/mule-runtime/4.3/dataweave-language-introduction)
 
 </details>
+
 [Git Bastic Commands](https://www.hostinger.in/tutorials/basic-git-commands)
